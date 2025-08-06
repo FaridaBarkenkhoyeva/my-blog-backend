@@ -10,8 +10,38 @@ app.use(cors());
 
 console.log(process.env.SECRET_KEY);
 
-const { PrismaClient, Prisma } = require("./generated/prisma");
+const { PrismaClient } = require("./generated/prisma");
 const prisma = new PrismaClient();
+
+// get all posts
+
+app.get("/posts", async (req, res) => {
+  try {
+    const allPosts = await prisma.post.findMany();
+    res.json(allPosts);
+  } catch (error) {
+    console.error("Error opening posts:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/posts/:id", async (req, res) => {
+  try {
+    console.log(req.params.id);
+    const { id } = req.params;
+    console.log(id);
+
+    const postId = await prisma.post.findUnique({
+      where: {
+        id: Number(id),
+      },
+    });
+    res.json(postId);
+  } catch (error) {
+    console.error("Error opening posts:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // create a function to add a new post
 async function addPost() {
@@ -32,8 +62,7 @@ async function addPost() {
   }
 }
 
-
-app.post("/newPost", async (req, res) => {
+app.post("/posts", async (req, res) => {
   try {
     const { author, title, content, cover } = req.body;
     if (!author || !title || !content) {
@@ -45,12 +74,49 @@ app.post("/newPost", async (req, res) => {
     await addPost(author, title, content, cover);
     res.status(201).json({ message: "Post has been added successfully" });
   } catch (err) {
-    console.error("Error in /newPost:", err);
+    console.error("Error in /posts:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-const port = "3007";
-app.listen(port, (req, res) => {
+app.put("/posts/:id", async (req, res) => {
+  try {
+    const { title, content } = req.body;
+    const { id } = req.params;
+    console.log(id);
+
+    const updatePost = await prisma.post.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        title: title,
+        content: content,
+      },
+    });
+    res.json(updatePost);
+  } catch (err) {
+    console.error("Error in /posts/:id:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.delete("/posts/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletePost = await prisma.post.delete({
+      where: {
+        id: Number(id),
+      },
+    });
+    res.json(deletePost);
+  } catch (err) {
+    console.error("Error in /posts/:id:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+const port = 3007;
+app.listen(port, () => {
   console.log("This server is running on port 3007");
 });
